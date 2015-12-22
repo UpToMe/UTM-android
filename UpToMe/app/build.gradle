@@ -1,0 +1,124 @@
+apply plugin: 'com.android.application'
+
+import com.android.builder.core.DefaultManifestParser
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.android.support:design:23.1.1'
+}
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 23
+    }
+
+    if(project.hasProperty("SigningProperties")
+            && new File(project.property("SigningProperties")).exists()) {
+
+        Properties signingProperties = new Properties()
+        signingProperties.load(new FileInputStream(file(project.property("SigningProperties"))))
+        signingConfigs {
+
+            debug {
+                storeFile file(signingProperties['uptome.keystore.debug'])
+            }
+
+            release {
+                storeFile file(signingProperties['uptome.keystore.release'])
+                storePassword signingProperties['uptome.keystore.release.password']
+                keyAlias signingProperties['uptome.keystore.release.keyAlias']
+                keyPassword signingProperties['uptome.keystore.release.keyPassword']
+            }
+        }
+    }
+
+    // products
+    productFlavors {
+
+        Dev {
+            applicationId "com.uptome.client"
+            signingConfig signingConfigs.debug
+        }
+
+        Beta {
+            applicationId "com.uptome.client.beta"
+            signingConfig signingConfigs.release
+        }
+
+        Master {
+            applicationId "com.uptome.client"
+            signingConfig signingConfigs.release
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    sourceSets {
+
+        main {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+            java.srcDirs = ['src/main/java']
+            aidl.srcDirs = ['src/main/java']
+            res.srcDirs = ['src/main/res']
+            assets.srcDirs = ['src/main/assets']
+        }
+
+        Dev {
+            manifest.srcFile 'configs/dev/AndroidManifest.xml'
+            res.srcDirs = ['configs/dev/res']
+        }
+
+        BetaDebug {
+            manifest.srcFile 'configs/beta/AndroidManifest.xml'
+            res.srcDirs = ['configs/beta/res']
+        }
+
+        BetaRelease {
+            manifest.srcFile 'configs/beta/AndroidManifest.xml'
+            res.srcDirs = ['configs/beta/res']
+        }
+
+        Master {
+            manifest.srcFile 'configs/master/AndroidManifest.xml'
+            res.srcDirs = ['configs/master/res']
+        }
+    }
+
+    // lint options
+    lintOptions {
+        abortOnError true
+    }
+
+    String versionName = new DefaultManifestParser().getVersionName(android.sourceSets.main.manifest.srcFile)
+
+    android.applicationVariants.all { variant ->
+
+        String productName = "UpToMe"
+        variant.outputs.each { output ->
+            output.outputFile = new File(
+                    output.outputFile.parent,
+                    output.outputFile.name.replaceFirst("app", String.format("%s-%s", productName, versionName)))
+
+        }
+
+
+        if (flavorName.equals("Dev") || flavorName.equals("Beta")) {
+            variant.mergedFlavor.versionName = String.format("%s %s", versionName, flavorName)
+        }
+    }
+}
