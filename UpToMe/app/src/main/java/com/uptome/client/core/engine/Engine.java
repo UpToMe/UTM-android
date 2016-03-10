@@ -1,19 +1,21 @@
 package com.uptome.client.core.engine;
 
 import android.content.Context;
-import android.os.Bundle;
 
+import com.uptome.client.RootComponent;
+import com.uptome.client.UpToMeApplication;
+import com.uptome.client.core.PreferencesHelper;
 import com.uptome.client.core.log.ClientLog;
-import com.uptome.client.core.service.ICurrentCourse;
-import com.uptome.client.core.service.IRegistration;
-import com.uptome.client.core.service.ISelfTesting;
+import com.uptome.client.core.model.ICurrentCourse;
+import com.uptome.client.core.model.IRegistration;
+import com.uptome.client.core.model.ISelfTesting;
+import com.uptome.client.core.model.ISkills;
 import com.uptome.client.core.service.IUpToMeServiceBinder;
 import com.uptome.client.core.service.UpToMeServiceClient;
 import com.uptome.client.core.service.UpToMeServiceObservable;
 
-import mortar.MortarScope;
-import mortar.Presenter;
-import mortar.bundler.BundleService;
+import javax.inject.Inject;
+
 import rx.Observable;
 import rx.functions.Action1;
 
@@ -22,7 +24,7 @@ import rx.functions.Action1;
  *
  * @author Vladimir Rybkin
  */
-public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngine, IUpToMeServiceBinder.IUpToMeServiceCallback {
+public class Engine implements IEngine, IUpToMeServiceBinder.IUpToMeServiceCallback {
 
     private static final String LOG_TAG = Engine.class.getSimpleName();
 
@@ -51,6 +53,22 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
      */
     private int mState = STATE_UNKNOWN;
 
+    /**
+     * Attached callback
+     */
+    private IEngineCallbacks mCallbacks;
+
+    /**
+     * Whether the engine is destroyed
+     */
+    private boolean mDestroyed;
+
+    /**
+     * Preferences
+     */
+    @Inject
+    PreferencesHelper mPrefs;
+
     public interface IEngineCallbacks {
 
         /**
@@ -68,21 +86,29 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
         void onEngineNewState(int previousState, int newState);
     }
 
-    @Override
-    protected BundleService extractBundleService(IEngineCallbacks callbacks) {
-        return BundleService.getBundleService(callbacks.getContext());
+    /**
+     * Constructor.
+     */
+    @Inject
+    public Engine(Context context) {
+        init(context);
     }
 
-    @Override
-    protected void onEnterScope(MortarScope scope) {
-        ClientLog.d(LOG_TAG, "Enter scope");
+    /**
+     * Initialize the engine
+     *
+     * @param context Context to use
+     */
+    private void init(Context context) {
+        ClientLog.d(LOG_TAG, "Initializing...");
+        ((RootComponent)context.getApplicationContext().getSystemService(UpToMeApplication.ROOT_NAME)).inject(this);
 
-        mUpToMeServiceClient = MortarScope.getScope(getView().getContext().getApplicationContext()).getService(UpToMeServiceClient.SERVICE_NAME);
+        mUpToMeServiceClient = new UpToMeServiceClient(context, LOG_TAG);
         Observable.create(new UpToMeServiceObservable(mUpToMeServiceClient))
                 .subscribe(new Action1<UpToMeServiceClient>() {
                                @Override
                                public void call(UpToMeServiceClient upToMeServiceClient) {
-                                   if (hasView() == false) {
+                                   if (mDestroyed == true) {
                                        return;
                                    }
 
@@ -110,6 +136,22 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
                         });
     }
 
+    /**
+     * Attach a callback
+     *
+     * @param callbacks Callbacks attached
+     */
+    public void attachCallbacks(IEngineCallbacks callbacks) {
+        mCallbacks = callbacks;
+    }
+
+    /**
+     * Detach callbacks
+     */
+    public void detachCallbacks() {
+        mCallbacks = null;
+    }
+
     @Override
     public void onNewServiceState(int previousState, int newState) {
         ClientLog.d(LOG_TAG, "On a new service state, previousState=%d new=%d", previousState, newState);
@@ -128,6 +170,11 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
      */
     private void onServiceReady() {
         do {
+            if (mPrefs.getShowIntro() == true) {
+                setState(STATE_INTRO);
+                break;
+            }
+
             IRegistration registration = mUpToMeServiceClient.getRegistrationInterface();
             if (registration.isCompleted() == false) {
                 setState(STATE_REGISTRATION);
@@ -166,12 +213,15 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
 
         if (mSplashCompleted == false && (newState != IEngine.STATE_INIT && newState != IEngine.STATE_ERROR)) {
             mPendingState = newState;
-            ClientLog.w(LOG_TAG, "Waiting for the splash, new pending state value=", mPendingState);
+            ClientLog.d(LOG_TAG, "Waiting for the splash, new pending state value=%d", mPendingState);
             return;
         }
 
         switch (newState) {
             case STATE_INIT:
+                break;
+
+            case STATE_INTRO:
                 break;
 
             case STATE_REGISTRATION:
@@ -203,33 +253,46 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
      * @param newState
      */
     private void notifyStateChanged(int previousState, int newState) {
-        IEngineCallbacks callbacks = getView();
+        IEngineCallbacks callbacks = mCallbacks;
 
         if (callbacks != null) {
             callbacks.onEngineNewState(previousState, newState);
         }
     }
 
-    @Override
-    protected void onLoad(Bundle savedInstanceState) {
-        ClientLog.d(LOG_TAG, "Load scope");
-        if (savedInstanceState != null) {
-            mSplashCompleted = savedInstanceState.getBoolean(EXTRA_SPLASH_COMPLETED);
-        }
-    }
+//    @Override
+//    protected void onLoad(Bundle savedInstanceState) {
+//        ClientLog.d(LOG_TAG, "Load scope");
+//        if (savedInstanceState != null) {
+//            mSplashCompleted = savedInstanceState.getBoolean(EXTRA_SPLASH_COMPLETED);
+//        }
+//    }
+//
+//    @Override
+//    protected void onSave(Bundle outState) {
+//        ClientLog.d(LOG_TAG, "Save scope");
+//        outState.putBoolean(EXTRA_SPLASH_COMPLETED, mSplashCompleted);
+//    }
+//
+//    @Override
+//    protected void onExitScope() {
+//        ClientLog.d(LOG_TAG, "Exit scope");
+//        if (mUpToMeServiceClient.isConnectedToService() == true) {
+//            mUpToMeServiceClient.unregisterCallback(this);
+//        }
+//    }
 
-    @Override
-    protected void onSave(Bundle outState) {
-        ClientLog.d(LOG_TAG, "Save scope");
-        outState.putBoolean(EXTRA_SPLASH_COMPLETED, mSplashCompleted);
-    }
-
-    @Override
-    protected void onExitScope() {
-        ClientLog.d(LOG_TAG, "Exit scope");
+    /**
+     * Destroy the engine
+     */
+    public void destroy() {
+        ClientLog.d(LOG_TAG, "Destroy called");
         if (mUpToMeServiceClient.isConnectedToService() == true) {
             mUpToMeServiceClient.unregisterCallback(this);
         }
+
+        detachCallbacks();
+        mDestroyed = true;
     }
 
     @Override
@@ -237,10 +300,32 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
         return mState;
     }
 
+    @Override
+    public IRegistration getRegistrationInterface() {
+        return mUpToMeServiceClient.getRegistrationInterface();
+    }
+
+    @Override
+    public ISelfTesting getSelfTestingInterface() {
+        return mUpToMeServiceClient.getSelfTestingInterface();
+    }
+
+    @Override
+    public ISkills getSkillsInterface() {
+        return mUpToMeServiceClient.getSkillsInterface();
+    }
+
+    @Override
+    public ICurrentCourse getCurrentCourseInterface() {
+        return mUpToMeServiceClient.getCurrentCourseInterface();
+    }
+
     /**
      * Notification that the splash screen has been completed
      */
     public void onSplashCompleted() {
+        ClientLog.d(LOG_TAG, "onSplashCompleted() called");
+
         if (mSplashCompleted == false) {
             mSplashCompleted = true;
 
@@ -250,6 +335,45 @@ public class Engine extends Presenter<Engine.IEngineCallbacks> implements IEngin
             }
         } else {
             ClientLog.w(LOG_TAG, "onSplashCompleted() called when the mSplashCompleted is true");
+        }
+    }
+
+    /**
+     * Intro completed
+     */
+    public void onIntroCompleted() {
+        ClientLog.d(LOG_TAG, "onIntroCompleted() called");
+
+        if (mUpToMeServiceClient.isConnectedToService() == true) {
+            IRegistration registration = mUpToMeServiceClient.getRegistrationInterface();
+            if (registration.isCompleted() == false) {
+                setState(STATE_REGISTRATION);
+            } else {
+                ISelfTesting testing = mUpToMeServiceClient.getSelfTestingInterface();
+
+                if (testing.isCompleted() == false) {
+                    setState(STATE_SELF_TEST);
+                } else {
+                    setState(STATE_SKILLS);
+                }
+            }
+        }
+    }
+
+    /**
+     * On registration complete event.
+     */
+    public void onRegistrationCompleted() {
+        ClientLog.d(LOG_TAG, "onRegistrationCompleted() called");
+
+        if (mUpToMeServiceClient.isConnectedToService() == true) {
+            ISelfTesting testing = mUpToMeServiceClient.getSelfTestingInterface();
+
+            if (testing.isCompleted() == false) {
+                setState(STATE_SELF_TEST);
+            } else {
+                setState(STATE_SKILLS);
+            }
         }
     }
 }

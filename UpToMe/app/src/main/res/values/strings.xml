@@ -1,6 +1,11 @@
 <resources>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="registration_q1">What is your name?</string>
+    <string name="registration_q2">How old are you?</string>
+    <string name="registration_q3">What is your height?</string>
+    <string name="registration_q4">What is your weight?</string>
+
+    <string name="btn_ok">@android:string/ok</string>
+    <string name="btn_finish">Finish</string>
 
     <string name="action_settings">Settings</string>
 </resources>

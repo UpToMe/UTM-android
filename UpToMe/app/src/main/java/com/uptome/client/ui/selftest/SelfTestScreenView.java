@@ -1,4 +1,4 @@
-package com.uptome.client.ui.error;
+package com.uptome.client.ui.selftest;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -6,31 +6,34 @@ import android.widget.FrameLayout;
 
 import javax.inject.Inject;
 
+
 /**
- * Splash screen view.
+ * Self test screen view.
+ *
+ * @author Vladimir Rybkin
  */
-public class ErrorScreenView extends FrameLayout {
+public class SelfTestScreenView extends FrameLayout {
 
-    @Inject ErrorScreen.Presenter mPresenter;
+    @Inject SelfTestScreen.Presenter mPresenter;
 
-    public ErrorScreenView(Context context) {
+    public SelfTestScreenView(Context context) {
         super(context);
         init(context);
     }
 
-    public ErrorScreenView(Context context, AttributeSet attrs) {
+    public SelfTestScreenView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
 
-    public ErrorScreenView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public SelfTestScreenView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(context);
 
     }
 
     /**
-     * Initialize
+     * Initialize.
      * @param context
      */
     protected void init(Context context) {
@@ -39,12 +42,12 @@ public class ErrorScreenView extends FrameLayout {
 
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-      //  mPresenter.takeView(this);
+        mPresenter.takeView(this);
     }
 
 
     @Override protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-      //  mPresenter.dropView(this);
+        mPresenter.dropView(this);
     }
 }

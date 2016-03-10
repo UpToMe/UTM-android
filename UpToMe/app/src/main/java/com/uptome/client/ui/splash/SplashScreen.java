@@ -1,21 +1,18 @@
 package com.uptome.client.ui.splash;
 
-import android.os.Bundle;
-
 import com.uptome.client.R;
-import com.uptome.client.RootModule;
+import com.uptome.client.core.android.ActionBarOwner;
 import com.uptome.client.core.engine.Engine;
-import com.uptome.client.core.mortar.WithModule;
+import com.uptome.client.core.scopes.ViewScope;
 import com.uptome.client.ui.common.Layout;
+import com.uptome.client.ui.common.ViewPresenter;
 
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
+import dagger.Provides;
 import flow.path.Path;
-import mortar.ViewPresenter;
-import mortar.dagger1support.ObjectGraphService;
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
@@ -25,29 +22,45 @@ import rx.android.schedulers.AndroidSchedulers;
  *
  * @author Vladimir Rybkin
  */
-@Layout(R.layout.splash_layout) @WithModule(SplashScreen.Module.class)
+@Layout(R.layout.splash_layout)
 public class SplashScreen extends Path {
 
-    @dagger.Module(injects = {SplashScreenView.class, SplashScreen.Presenter.class}, addsTo = RootModule.class)
+    @dagger.Module
     public static class Module {
 
+        @ViewScope
+        @Provides
+        SplashScreen.Presenter providePresenter() {
+            return new Presenter();
+        }
     }
 
-    @Singleton
+    @ViewScope
     public static class Presenter extends ViewPresenter<SplashScreenView> {
 
         @Inject
         Engine mEngine;
 
+        @Inject
+        ActionBarOwner mActionBarOwner;
+
+        @Inject
+        public Presenter() {
+            mEngine = null;
+        }
+
         @Override
-        public void onLoad(Bundle savedInstance) {
-            super.onLoad(savedInstance);
+        public void takeView(SplashScreenView view) {
+            super.takeView(view);
             if (hasView() == false) {
                 return;
             }
 
+            view.getSplashScreenComponent().inject(this);
+            mActionBarOwner.setActionBarVisibility(false);
+
+
             final int DELAY_SECONDS = 3;
-            ObjectGraphService.inject(getView().getContext(), this);
             Observable.empty().delay(DELAY_SECONDS, TimeUnit.SECONDS)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new Subscriber<Object>() {

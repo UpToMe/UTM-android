@@ -1,4 +1,4 @@
-package com.uptome.client.core.service;
+package com.uptome.client.core.model;
 
 /**
  * Skills interface

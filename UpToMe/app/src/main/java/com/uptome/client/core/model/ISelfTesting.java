@@ -1,4 +1,4 @@
-package com.uptome.client.core.service;
+package com.uptome.client.core.model;
 
 /**
  * The self testing interface.

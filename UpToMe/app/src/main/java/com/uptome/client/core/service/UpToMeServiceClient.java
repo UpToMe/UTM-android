@@ -8,18 +8,19 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.uptome.client.core.log.ClientLog;
+import com.uptome.client.core.model.ICurrentCourse;
+import com.uptome.client.core.model.IRegistration;
+import com.uptome.client.core.model.ISelfTesting;
+import com.uptome.client.core.model.ISkills;
 
 import java.util.LinkedList;
-
-import mortar.MortarScope;
-import mortar.Scoped;
 
 /**
  * A client to the main service.
  *
  * @author Vladimir Rybkin
  */
-public class UpToMeServiceClient implements Scoped, IUpToMeServiceBinder {
+public class UpToMeServiceClient implements IUpToMeServiceBinder {
 
     public static final String SERVICE_NAME = UpToMeService.SERVICE_NAME;
 
@@ -185,16 +186,6 @@ public class UpToMeServiceClient implements Scoped, IUpToMeServiceBinder {
             ClientLog.d(mLogTag, "service unbound successfully");
         }
     };
-
-    @Override
-    public void onEnterScope(MortarScope scope) {
-        connect();
-    }
-
-    @Override
-    public void onExitScope() {
-        disconnect();
-    }
 
     /**
      * Ensure that conention is established.

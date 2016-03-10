@@ -6,28 +6,86 @@ package com.uptome.client;
  * @author Vladimir Rybkin
  */
 
+import android.content.Context;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.uptome.client.core.PreferencesHelper;
+import com.uptome.client.core.android.ActionBarOwner;
 import com.uptome.client.core.engine.Engine;
-
-import javax.inject.Singleton;
+import com.uptome.client.core.model.ICurrentCourse;
+import com.uptome.client.core.model.IRegistration;
+import com.uptome.client.core.model.ISelfTesting;
+import com.uptome.client.core.model.ISkills;
+import com.uptome.client.core.scopes.PerApp;
 
 import dagger.Module;
 import dagger.Provides;
 
-@Module(injects = { MainActivity.class },
-        library = true)
+@Module
 public class RootModule {
 
-    @Provides
-    @Singleton
-    Gson provideGson() {
-            return new GsonBuilder().create();
+    private final Context mContext;
+
+    /**
+     * Constructor.
+     * @param context Root context
+     */
+    public RootModule(Context context) {
+        mContext = context;
     }
 
     @Provides
-    @Singleton
-    Engine provideEngine() {
-        return new Engine();
+    @PerApp
+    Context provideContext() {
+        return mContext;
+    }
+
+    @Provides
+    @PerApp
+    Gson provideGson() {
+        return new GsonBuilder().create();
+    }
+
+    @Provides
+    @PerApp
+    Engine provideEngine(Context context) {
+        return new Engine(context);
+    }
+
+    @Provides
+    @PerApp
+    PreferencesHelper providePreferences(Context context) {
+        return new PreferencesHelper(context);
+    }
+
+    @Provides
+    @PerApp
+    ActionBarOwner getActionBarOwner() {
+        return new ActionBarOwner();
+    }
+
+    @Provides
+    @PerApp
+    IRegistration getRegistration(Engine engine) {
+        return engine.getRegistrationInterface();
+    }
+
+    @Provides
+    @PerApp
+    ISelfTesting getSelfTesting(Engine engine) {
+        return engine.getSelfTestingInterface();
+    }
+
+    @Provides
+    @PerApp
+    ISkills getSkills(Engine engine) {
+        return engine.getSkillsInterface();
+    }
+
+    @Provides
+    @PerApp
+    ICurrentCourse getCurrentCourse(Engine engine) {
+        return engine.getCurrentCourseInterface();
     }
 }

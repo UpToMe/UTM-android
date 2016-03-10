@@ -1,5 +1,10 @@
 package com.uptome.client.core.service;
 
+import com.uptome.client.core.model.ICurrentCourse;
+import com.uptome.client.core.model.IRegistration;
+import com.uptome.client.core.model.ISelfTesting;
+import com.uptome.client.core.model.ISkills;
+
 /**
  * The main service binder interface.
  *

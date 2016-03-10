@@ -66,6 +66,10 @@ public class DefaultPathContainer extends PathContainer {
                 .cloneInContext(context)
                 .inflate(layout, containerView, false);
 
+        if (newView instanceof IPathApply) {
+            ((IPathApply)newView).applyPath(to);
+        }
+
         View fromView = null;
         if (traversalState.fromPath() != null) {
             fromView = containerView.getChildAt(0);
@@ -85,7 +89,8 @@ public class DefaultPathContainer extends PathContainer {
                 @Override
                 public void onMeasured(View view, int width, int height) {
                     runAnimation(containerView, finalFromView, view, direction, new Flow.TraversalCallback() {
-                        @Override public void onTraversalCompleted() {
+                        @Override
+                        public void onTraversalCompleted() {
                             containerView.removeView(finalFromView);
                             oldPath.destroyNotIn(context, mContextFactory);
                             callback.onTraversalCompleted();

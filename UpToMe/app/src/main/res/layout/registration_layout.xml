@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.uptome.client.ui.registration.RegistrationScreenView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:layout_marginTop="?android:attr/actionBarSize">
+
+    <TextView
+        android:id="@+id/text_question"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:textColor="#000077"
+        android:textSize="20sp"/>
+
+    <EditText
+        android:id="@+id/edit_answer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="100dp"
+        android:layout_below="@id/text_question"
+        android:lines="1"
+        android:maxLines="1"
+        android:gravity="center"
+        android:layout_centerInParent="true"
+        android:singleLine="true"/>
+
+    <TextView
+        android:id="@+id/btn_ok"
+        android:textColor="@android:color/white"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:clickable="true"
+        android:background="#000077"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"/>
+
+</com.uptome.client.ui.registration.RegistrationScreenView>

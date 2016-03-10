@@ -3,12 +3,7 @@ package com.uptome.client.ui.main;
 import android.content.Context;
 import android.util.AttributeSet;
 
-import com.uptome.client.R;
-import com.uptome.client.core.mortar.MortarContextFactory;
-import com.uptome.client.ui.common.DefaultPathContainer;
 import com.uptome.client.ui.common.PathFrameLayout;
-
-import flow.path.Path;
 
 /**
  * The main container.
@@ -45,11 +40,5 @@ public class MainFrameLayout extends PathFrameLayout {
      */
     public MainFrameLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-    }
-
-    @Override
-    protected void initPathContainer() {
-        mPathContainer = new DefaultPathContainer(R.id.main_container_tag,
-                Path.contextFactory(new MortarContextFactory()));
     }
 }

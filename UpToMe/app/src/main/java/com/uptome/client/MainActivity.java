@@ -4,14 +4,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
 import com.google.gson.Gson;
 import com.uptome.client.core.GsonParceler;
+import com.uptome.client.core.android.ActionBarOwner;
 import com.uptome.client.core.engine.Engine;
 import com.uptome.client.core.engine.IEngine;
+import com.uptome.client.ui.error.ErrorScreen;
+import com.uptome.client.ui.intro.IntroScreen;
 import com.uptome.client.ui.main.MainFrameLayout;
+import com.uptome.client.ui.registration.RegistrationScreen;
 import com.uptome.client.ui.splash.SplashScreen;
 
 import javax.inject.Inject;
@@ -20,13 +25,6 @@ import flow.Flow;
 import flow.FlowDelegate;
 import flow.History;
 import flow.StateParceler;
-import flow.path.Path;
-import mortar.MortarScope;
-import mortar.bundler.BundleServiceRunner;
-import mortar.dagger1support.ObjectGraphService;
-
-import static mortar.MortarScope.buildChild;
-import static mortar.MortarScope.findChild;
 
 /**
  * The main activity.
@@ -34,7 +32,7 @@ import static mortar.MortarScope.findChild;
  * @author Vladimir Rybkin
  */
 public class MainActivity extends AppCompatActivity
-        implements Flow.Dispatcher, Engine.IEngineCallbacks {
+        implements Flow.Dispatcher, Engine.IEngineCallbacks, ActionBarOwner.ActionBarOwnerCallback {
 
     private final static String LOG_TAG = MainActivity.class.getSimpleName();
 
@@ -54,22 +52,20 @@ public class MainActivity extends AppCompatActivity
     @Inject
     Engine mEngine;
 
+    /**
+     * Action bar
+     */
+    @Inject
+    ActionBarOwner mActionBarOwner;
+
     @Override
     public Object getSystemService(@NonNull String name) {
-        MortarScope activityScope = findChild(getApplicationContext(), getScopeName());
-
-        if (activityScope == null) {
-            activityScope = buildChild(getApplicationContext())
-                    .withService(BundleServiceRunner.SERVICE_NAME, new BundleServiceRunner())
-                    .build(getScopeName());
-        }
-
         if (mFlowDelegate != null) {
             Object flowService = mFlowDelegate.getSystemService(name);
             if (flowService != null) return flowService;
         }
 
-        return activityScope.hasService(name) ? activityScope.getService(name) : super.getSystemService(name);
+        return super.getSystemService(name);
     }
 
     /**
@@ -84,7 +80,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        BundleServiceRunner.getBundleServiceRunner(this).onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -92,8 +87,11 @@ public class MainActivity extends AppCompatActivity
         mMainFrameLayout = (MainFrameLayout) findViewById(R.id.container);
 
         // inject dependencies
-        ObjectGraphService.inject(this, this);
-        mEngine.takeView(this);
+        RootComponent root = (RootComponent) getApplicationContext().getSystemService(UpToMeApplication.ROOT_NAME);
+        root.inject(this);
+
+        mEngine.attachCallbacks(this);
+        mActionBarOwner.attachCallbacks(this);
 
         // initialize the Flow
         StateParceler parceler = new GsonParceler(new Gson());
@@ -113,7 +111,6 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         mFlowDelegate.onSaveInstanceState(outState);
-        BundleServiceRunner.getBundleServiceRunner(this).onSaveInstanceState(outState);
     }
 
     @Override
@@ -137,14 +134,8 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onDestroy() {
-        mEngine.dropView(this);
-
-        if (isFinishing()) {
-            MortarScope activityScope = findChild(getApplicationContext(), getScopeName());
-            if (activityScope != null) {
-                activityScope.destroy();
-            }
-        }
+        mEngine.destroy();
+        mActionBarOwner.destroy();
 
         super.onDestroy();
 
@@ -176,7 +167,6 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void dispatch(Flow.Traversal traversal, Flow.TraversalCallback callback) {
-        Path newScreen = traversal.destination.top();
         mMainFrameLayout.dispatch(traversal, callback);
     }
 
@@ -186,12 +176,29 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    public void setActionBarVisibility(boolean visible) {
+        ActionBar actionBar = getSupportActionBar();
+        if (visible == true && actionBar.isShowing() == false) {
+            actionBar.show();
+        } else if (visible == false && actionBar.isShowing() == true) {
+            actionBar.hide();
+        }
+    }
+
+    @Override
     public void onEngineNewState(int previousState, int newState) {
         switch (newState) {
             case IEngine.STATE_INIT:
                 break;
 
+            case IEngine.STATE_INTRO:
+                Flow.get(this).setHistory(History.single(new IntroScreen()), Flow.Direction.REPLACE);
+                break;
+
             case IEngine.STATE_REGISTRATION:
+                int index = mEngine.getRegistrationInterface().getNextQuestionIndex(-1);
+                int nextIndex = mEngine.getRegistrationInterface().getNextQuestionIndex(index);
+                Flow.get(this).setHistory(History.single(new RegistrationScreen(index, nextIndex)), Flow.Direction.REPLACE);
                 break;
 
             case IEngine.STATE_SELF_TEST:
@@ -204,6 +211,7 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             case IEngine.STATE_ERROR:
+                Flow.get(this).set(new ErrorScreen());
                 break;
 
             default:

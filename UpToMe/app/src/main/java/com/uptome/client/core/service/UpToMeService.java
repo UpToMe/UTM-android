@@ -1,13 +1,20 @@
 package com.uptome.client.core.service;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
 import com.uptome.client.core.log.ClientLog;
+import com.uptome.client.core.model.ICurrentCourse;
+import com.uptome.client.core.model.IRegistration;
+import com.uptome.client.core.model.ISelfTesting;
+import com.uptome.client.core.model.ISkills;
+import com.uptome.client.core.model.pojo.CurrentCourse;
+import com.uptome.client.core.model.pojo.Registration;
+import com.uptome.client.core.model.pojo.SelfTesting;
+import com.uptome.client.core.model.pojo.Skills;
 
 import java.util.LinkedList;
 
@@ -207,93 +214,6 @@ public class UpToMeService extends Service {
     }
 
     /**
-     * Registration proxy
-     */
-    private static class Registration implements IRegistration {
-
-        /**
-         * Whether the registartion is completed
-         */
-        private boolean mIsCompleted;
-
-        /**
-         * Initialize the instance
-         */
-        public static Registration init(Context context) {
-            ClientLog.d(LOG_TAG, "Start the registration proxy initializaation");
-            Registration instance = new Registration();
-
-            ClientLog.d(LOG_TAG, "The registration proxy initializaation completed successfully");
-            return instance;
-        }
-
-        @Override
-        public boolean isCompleted() {
-            return mIsCompleted;
-        }
-    }
-
-    /**
-     * Self testing proxy
-     */
-    private static class SelfTesting implements ISelfTesting {
-
-        /**
-         * Whether the self-testing is completed
-         */
-        private boolean mIsCompleted;
-
-        /**
-         * Initialize the instance
-         */
-        public static SelfTesting init(Context context) {
-            ClientLog.d(LOG_TAG, "Start the self-testing proxy initializaation");
-            SelfTesting instance = new SelfTesting();
-
-            ClientLog.d(LOG_TAG, "The self-testing proxy initializaation completed successfully");
-            return instance;
-        }
-
-        @Override
-        public boolean isCompleted() {
-            return mIsCompleted;
-        }
-    }
-
-    /**
-     * Skills proxy
-     */
-    private static class Skills implements ISkills {
-
-        /**
-         * Initialize the instance
-         */
-        public static Skills init(Context context) {
-            ClientLog.d(LOG_TAG, "Start the skills proxy initializaation");
-            Skills skills = new Skills();
-
-            ClientLog.d(LOG_TAG, "The skills proxy initializaation completed successfully");
-            return skills;
-        }
-    }
-
-    /**
-     * The current course proxy
-     */
-    private static class CurrentCourse implements ICurrentCourse {
-
-        /**
-         * Initialize the instance
-         */
-        public static CurrentCourse init(Context context) {
-            ClientLog.d(LOG_TAG, "Start the current course proxy initialization");
-
-            ClientLog.d(LOG_TAG, "The skills proxy initializaation completed successfully");
-            return null;
-        }
-    }
-
-    /**
      * The service initializer
      */
     private class Initializer implements Observable.OnSubscribe<Object> {
@@ -324,7 +244,7 @@ public class UpToMeService extends Service {
             Exception exception = null;
             try {
                 do {
-                    mRegistration = Registration.init(UpToMeService.this);
+                    mRegistration = Registration.create(UpToMeService.this);
 
                     if (mDestroyed == true) {
                         break;
